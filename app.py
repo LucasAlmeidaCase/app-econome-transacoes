@@ -2,6 +2,7 @@ from flask_openapi3 import OpenAPI, Info, Tag
 from flask import redirect
 from flask_cors import CORS
 
+from resources.transacao.observacao_resource import config_observacao_routes
 from resources.transacao.transacao_resource import config_transacao_routes
 from utils.logger import logger
 
@@ -24,6 +25,7 @@ def home():
 
 # Registrar rotas das transações
 config_transacao_routes(app)
+config_observacao_routes(app)
 
 if __name__ == "__main__":
     app.run(debug=True)
