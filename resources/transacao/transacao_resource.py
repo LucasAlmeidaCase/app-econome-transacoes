@@ -1,3 +1,5 @@
+from urllib.parse import unquote
+
 from flask_openapi3 import Tag
 from sqlalchemy.exc import IntegrityError
 
@@ -6,7 +8,7 @@ from model.transacao.enums.tipo_transacao_model import TipoTransacao
 from model.transacao.transacao_model import TransacaoModel
 from schemas.error.error_schema import ErrorSchema
 from schemas.transacao.transacao_schema import TransacaoSchema, apresenta_transacao, apresenta_transacoes, \
-    TransacaoViewSchema, ListagemTransacoesSchema, TransacaoBuscaSchema
+    TransacaoViewSchema, ListagemTransacoesSchema, TransacaoBuscaSchema, TransacaoDelSchema
 from utils.logger import logger
 
 transacao_tag = Tag(name="Transações", description="Operações relacionadas as transações")
@@ -79,3 +81,32 @@ def config_transacao_routes(app):
         except Exception as e:
             logger.error(f"Erro ao buscar transação: {str(e)}")
             return {"message": "Erro inesperado"}, 400
+
+    @app.delete('/transacao', tags=[transacao_tag], responses={"200": TransacaoDelSchema,
+                                                               "404": ErrorSchema.Config.json_schema_extra[
+                                                                   "examples"]["404"]["value"],
+                                                               "400": ErrorSchema.Config.json_schema_extra[
+                                                                   "examples"]["400"]["value"]})
+    def del_transacao(query: TransacaoBuscaSchema):
+        """Deleta uma transação a partir da descrição informada
+
+        Retorna uma mensagem de confirmação da remoção.
+        """
+        transacao_descricao = unquote(unquote(query.descricao))
+        logger.debug(f"Tentando deletar transação: '{transacao_descricao}'")
+
+        try:
+            session = Session()
+            count = session.query(TransacaoModel).filter(TransacaoModel.descricao == transacao_descricao).delete()
+            session.commit()
+
+            if count:
+                logger.debug(f"Transação deletada com sucesso: '{transacao_descricao}'")
+                return {"message": "Transação removida", "descricao": transacao_descricao}, 200
+            else:
+                logger.warning(f"Transação não encontrada para exclusão: '{transacao_descricao}'")
+                return {"message": "Transação não encontrada"}, 404
+
+        except Exception as e:
+            logger.error(f"Erro ao deletar transação '{transacao_descricao}': {str(e)}")
+            return {"message": "Erro inesperado ao deletar transação"}, 400
