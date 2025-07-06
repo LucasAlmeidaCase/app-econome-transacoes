@@ -20,16 +20,18 @@ def config_transacao_routes(app):
                                                                  "409"]["value"],
                                                              "400": ErrorSchema.Config.json_schema_extra["examples"][
                                                                  "400"]["value"]})
-    def add_transacao(form: TransacaoSchema):
+    def add_transacao(body: TransacaoSchema):
         """ Adiciona uma nova transação à base de dados
 
         Retorna uma representação da transação adicionada.
         """
         transacao = TransacaoModel(
-            descricao=form.descricao,
-            tipo_transacao=TipoTransacao(form.tipo_transacao),
-            valor=form.valor,
-            pago=form.pago
+            data_vencimento=body.data_vencimento,
+            descricao=body.descricao,
+            tipo_transacao=TipoTransacao(body.tipo_transacao),
+            valor=body.valor,
+            pago=body.pago,
+            data_pagamento=body.data_pagamento,
         )
         logger.debug(f"Adicionando transação: '{transacao.descricao}'")
 

@@ -1,7 +1,8 @@
+from _pydatetime import date
 from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, Boolean, Date
 from sqlalchemy.orm import relationship
 
 from model.base.base_model import Base
@@ -21,16 +22,21 @@ class TransacaoModel(Base):
     valor = Column(Float(), nullable=False)
     data_inclusao = Column(DateTime, default=datetime.now())
     pago = Column(Boolean, nullable=False, default=False)
+    data_pagamento = Column(Date, nullable=True)
+    data_vencimento = Column(Date, nullable=True)
 
     observacoes = relationship("ObservacaoModel")
 
     def __init__(self, descricao: str, tipo_transacao: TipoTransacao, valor: float,
-                 data_inclusao: Union[DateTime, None] = None, pago: bool = False):
+                 data_inclusao: Union[DateTime, None] = None, pago: bool = False, data_pagamento: Optional[date] = None,
+                 data_vencimento: Optional[date] = None):
         self.descricao = descricao
         self.tipo_transacao = tipo_transacao
         self.valor = valor
         self.data_inclusao = data_inclusao if data_inclusao else datetime.now()
         self.pago = pago
+        self.data_pagamento = data_pagamento
+        self.data_vencimento = data_vencimento
 
     def adiciona_observacao(self, observacao: ObservacaoModel):
         self.observacoes.append(observacao)
