@@ -16,7 +16,7 @@ if not os.path.exists(db_path):
     print("Diretório de banco de dados criado.")
 
 # URL de conexão para o banco de dados SQLite local
-db_url = 'sqlite:///%s/econome_db.sqlite3' % db_path
+db_url = 'sqlite:///%s/econome_db_transacoes.sqlite3' % db_path
 
 # Cria o banco de dados e a tabela
 engine = create_engine(db_url, echo=False)
