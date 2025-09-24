@@ -1,4 +1,4 @@
-# API EconoMe
+# API app-econome-transacoes
 
 Este projeto faz parte do material didático da Disciplina **Desenvolvimento Full Stack Básico**.
 
@@ -19,8 +19,8 @@ O objetivo deste projeto é ilustrar o conteúdo apresentado ao longo das três 
 1. Clone o repositório:
 
     ```bash
-    git clone https://github.com/usuario/app-econome-backend.git
-    cd app-econome-backend
+    git clone https://github.com/usuario/app-econome-transacoes.git
+    cd app-econome-transacoes
     ```
 
 2. Inicie os containers:
