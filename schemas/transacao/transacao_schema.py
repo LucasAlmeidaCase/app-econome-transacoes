@@ -17,6 +17,18 @@ class TransacaoSchema(BaseModel):
     data_pagamento: Optional[date] = None
     pedido_id: Optional[int] = None
 
+class TransacaoAtualizacaoSchema(BaseModel):
+    """Schema para atualização parcial de transação vinculada a um pedido.
+
+    Todos os campos são opcionais; apenas os fornecidos serão atualizados.
+    """
+    data_vencimento: Optional[date] = None
+    descricao: Optional[str] = None
+    tipo_transacao: Optional[TipoTransacao] = None
+    valor: Optional[float] = None
+    pago: Optional[bool] = None
+    data_pagamento: Optional[date] = None
+
 class TransacaoBuscaSchema(BaseModel):
     descricao: str = "Salario"
 
