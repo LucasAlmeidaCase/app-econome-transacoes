@@ -6,7 +6,7 @@ from resources.transacao.observacao_resource import config_observacao_routes
 from resources.transacao.transacao_resource import config_transacao_routes
 from utils.logger import logger
 
-info = Info(title="API EconoMe", version="1.0.0")
+info = Info(title="API do aplicativo Econome Transações", version="1.0.0")
 app = OpenAPI(__name__, info=info)
 CORS(app)
 
@@ -16,7 +16,7 @@ home_tag = Tag(name="Documentação", description="Seleção de documentação: 
 
 @app.get("/", tags=[home_tag], responses={"200": {"description": "Redireciona para /openapi"}})
 def home():
-    """Página inicial da API EconoMe. Redireciona para /openapi, tela que permite a escolha do tipo da documentação."""
+    """Página inicial da API EconoMe Transações. Redireciona para /openapi, tela que permite a escolha do tipo da documentação."""
     try:
         return redirect('/openapi')
     except Exception as e:
