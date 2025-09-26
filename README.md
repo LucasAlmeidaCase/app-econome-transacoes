@@ -1,8 +1,11 @@
 # 💸 App Econome - Transações API
 
-API REST em Python (Flask 3 + flask-openapi3) para gerenciamento de transações financeiras. Expõe operações de criação, listagem, consulta e remoção de transações, além do vínculo de observações. Oferece documentação automática multi-interface (Swagger UI, ReDoc, RapiDoc, RapiPDF, Scalar e Elements), logging estruturado e validação via Pydantic.
+API REST em Python (Flask 3 + flask-openapi3) para gerenciamento de transações financeiras. Expõe operações de criação, listagem, consulta, atualização e remoção de transações, além do vínculo de observações. Oferece documentação automática multi-interface (Swagger UI, ReDoc, RapiDoc, RapiPDF, Scalar e Elements), logging estruturado e validação via Pydantic.
 
-> NOVO (vínculo com Pedidos): agora cada transação pode conter um `pedido_id` (one-to-one) proveniente do microserviço de Pedidos. Foi adicionado também o endpoint `GET /transacoes/pedido/{pedido_id}` para recuperação direta.
+> NOVO:
+>
+> - Vínculo com Pedidos (`pedido_id`) – endpoint `GET /transacoes/pedido/{pedido_id}`
+> - Atualização de transação via `PUT /transacao/{id}` (atualização parcial simples)
 
 ---
 
@@ -41,7 +44,7 @@ cd app-econome-transacoes
 docker network create econome-net
 ```
 
-2. Suba o container (anexe à rede se for integrar com Pedidos):
+1. Suba o container (anexe à rede se for integrar com Pedidos):
 
 ```bash
 docker compose up -d --build
@@ -160,10 +163,11 @@ app-econome-transacoes/
 - Criar transação (POST /transacao)
 - Listar transações (GET /transacoes)
 - Consultar transação por descrição (GET /transacao?descricao=...)
+- Atualizar transação (PUT /transacao/{id})
 - Remover transação por descrição (DELETE /transacao?descricao=...)
 - Adicionar observação a uma transação (POST /transacao/observacao)
-- Documentação multi-formato OpenAPI
 - Consultar transação vinculada a um Pedido (GET /transacoes/pedido/{pedido_id})
+- Documentação multi-formato OpenAPI
 
 ---
 
@@ -192,14 +196,15 @@ Observação:
 
 ## 🔁 Endpoints (Resumo Rápido)
 
-| Método | Caminho                              | Descrição                                               |
-|--------|--------------------------------------|---------------------------------------------------------|
-| POST   | /transacao                           | Cria nova transação                                     |
-| GET    | /transacoes                          | Lista todas as transações                               |
-| GET    | /transacao?descricao=...             | Busca transação pela descrição                          |
-| GET    | /transacoes/pedido/{pedido_id}       | Busca transação vinculada a um Pedido                   |
-| DELETE | /transacao?descricao=...             | Remove transação pela descrição                         |
-| POST   | /transacao/observacao                | Adiciona observação em uma transação                    |
+| Método | Caminho                          | Descrição                                         |
+|--------|----------------------------------|---------------------------------------------------|
+| POST   | /transacao                       | Cria nova transação                               |
+| GET    | /transacoes                      | Lista todas as transações                         |
+| GET    | /transacao?descricao=...         | Busca transação pela descrição                    |
+| GET    | /transacoes/pedido/{pedido_id}   | Busca transação vinculada a um Pedido             |
+| PUT    | /transacao/{id}                  | Atualiza transação existente                      |
+| DELETE | /transacao?descricao=...         | Remove transação pela descrição                   |
+| POST   | /transacao/observacao            | Adiciona observação em uma transação              |
 
 ---
 
@@ -261,6 +266,25 @@ Resposta (exemplo):
 
 > Observação: o serviço de Pedidos publica eventos (Domain Event) que disparam POST /transacao automaticamente para pedidos FATURADO, enviando descrição padronizada "Pedido NUMERO_PEDIDO (#ID_INTERNO)" e `pedido_id`.
 
+Atualizar transação:
+
+```bash
+curl -X PUT http://localhost:5001/transacao/20 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "descricao": "Pedido PED-129 (#12)",
+    "valor": 600.00,
+    "pago": true,
+    "data_pagamento": "2025-09-30"
+  }'
+```
+
+Observações sobre atualização:
+
+- O corpo segue o schema base; campos omitidos não são alterados.
+- Se `pago=false`, o backend aceita limpar `data_pagamento` enviando `null` ou omitindo.
+- Validação de consistência mínima (ex.: tipos) é feita via Pydantic; regras de negócio adicionais podem ser expandidas.
+
 ---
 
 ## 🧩 Erros e Respostas
@@ -304,7 +328,7 @@ Recomendação futura: implementar idempotência (checar por `pedido_id`) e padr
 - Autenticação (JWT) e autorização
 - Testes automatizados (pytest + coverage)
 - Padronização de resposta de erro expandida (códigos internos)
-- Endpoint de atualização (PUT) de transação (ex: alterar pago / datas)
+- Idempotência e Outbox para integração com Pedidos
 - Observabilidade (tracing distribuído entre microserviços)
 
 ---
