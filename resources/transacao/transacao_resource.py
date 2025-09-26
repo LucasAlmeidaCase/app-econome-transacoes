@@ -9,12 +9,16 @@ from model.transacao.transacao_model import TransacaoModel
 from schemas.error.error_schema import ErrorSchema
 from schemas.transacao.transacao_schema import TransacaoSchema, apresenta_transacao, apresenta_transacoes, \
     TransacaoViewSchema, ListagemTransacoesSchema, TransacaoBuscaSchema, TransacaoDelSchema
+from pydantic import BaseModel
 from utils.logger import logger
 
 transacao_tag = Tag(name="Transações", description="Operações relacionadas as transações")
 
 
 def config_transacao_routes(app):
+    class PedidoIdPathSchema(BaseModel):
+        pedido_id: int
+
     @app.post('/transacao', tags=[transacao_tag], responses={"200": TransacaoViewSchema,
                                                              "409": ErrorSchema.Config.json_schema_extra["examples"][
                                                                  "409"]["value"],
@@ -32,6 +36,7 @@ def config_transacao_routes(app):
             valor=body.valor,
             pago=body.pago,
             data_pagamento=body.data_pagamento,
+            pedido_id=body.pedido_id
         )
         logger.debug(f"Adicionando transação: '{transacao.descricao}'")
 
@@ -83,6 +88,23 @@ def config_transacao_routes(app):
         except Exception as e:
             logger.error(f"Erro ao buscar transação: {str(e)}")
             return {"message": "Erro inesperado"}, 400
+
+    @app.get('/transacoes/pedido/<int:pedido_id>', tags=[transacao_tag], responses={"200": TransacaoViewSchema,
+                                                                                    "404": ErrorSchema.Config.json_schema_extra[
+                                                                                            "examples"]["404"]["value"]})
+    def get_transacao_por_pedido(path: PedidoIdPathSchema):
+        """Retorna a transação associada a um pedido específico (pedido_id)."""
+        session = Session()
+        try:
+            transacao = session.query(TransacaoModel).filter(TransacaoModel.pedido_id == path.pedido_id).first()
+            if not transacao:
+                return {"message": "Transação não encontrada"}, 404
+            return apresenta_transacao(transacao), 200
+        except Exception as e:
+            logger.error(f"Erro ao buscar transação por pedido_id={path.pedido_id}: {str(e)}")
+            return {"message": "Erro inesperado"}, 400
+        finally:
+            session.close()
 
     @app.delete('/transacao', tags=[transacao_tag], responses={"200": TransacaoDelSchema,
                                                                "404": ErrorSchema.Config.json_schema_extra[

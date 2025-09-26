@@ -15,6 +15,7 @@ class TransacaoSchema(BaseModel):
     valor: float = 3587.82
     pago: bool = False
     data_pagamento: Optional[date] = None
+    pedido_id: Optional[int] = None
 
 class TransacaoBuscaSchema(BaseModel):
     descricao: str = "Salario"
@@ -32,7 +33,8 @@ def apresenta_transacoes(transacoes: List[TransacaoModel]):
             "valor": transacao.valor,
             "pago": transacao.pago,
             "data_pagamento": transacao.data_pagamento,
-            "observacoes": [{"texto": o.texto, "data_inclusao": o.data_inclusao} for o in transacao.observacoes]
+            "observacoes": [{"texto": o.texto, "data_inclusao": o.data_inclusao} for o in transacao.observacoes],
+            "pedido_id": transacao.pedido_id
         })
     return {"transacoes": result}
 
@@ -47,6 +49,7 @@ class TransacaoViewSchema(BaseModel):
     pago: bool = False
     data_pagamento: Optional[date] = None
     observacoes: List[ObservacaoSchema]
+    pedido_id: Optional[int] = None
 
 class TransacaoDelSchema(BaseModel):
     message: str
@@ -61,5 +64,6 @@ def apresenta_transacao(transacao: TransacaoModel):
         "valor": transacao.valor,
         "pago": transacao.pago,
         "data_pagamento": transacao.data_pagamento,
-        "observacoes": [{"texto": o.texto, "data_inclusao": o.data_inclusao} for o in transacao.observacoes]
+        "observacoes": [{"texto": o.texto, "data_inclusao": o.data_inclusao} for o in transacao.observacoes],
+        "pedido_id": transacao.pedido_id
     }

@@ -1,8 +1,9 @@
 import os.path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
+import re
 
 # Importando os elementos definidos no modelo
 from model.base.base_model import Base
@@ -28,5 +29,48 @@ Session = sessionmaker(bind=engine)
 if not database_exists(engine.url):
     create_database(engine.url)
 
-# Cria as tabelas no banco de dados
+"""
+Rotina simples de "migração" incremental:
+Se a coluna pedido_id ainda não existir na tabela transacao (bancos criados antes da funcionalidade
+de vínculo Pedido-Transação), ela é adicionada via ALTER TABLE e um índice único é criado.
+Em seguida, tentamos fazer backfill a partir do padrão de descrição: "Pedido <numero> (#<id>)".
+
+Obs.: Para algo mais robusto, considerar Alembic no futuro.
+"""
+
+def aplicar_migracoes_simples():
+    inspector = inspect(engine)
+    try:
+        tables = inspector.get_table_names()
+    except Exception:
+        return
+    if 'transacao' not in tables:
+        # Tabela ainda não existe; será criada normalmente abaixo
+        return
+    col_names = [c['name'] for c in inspector.get_columns('transacao')]
+    if 'pedido_id' not in col_names:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE transacao ADD COLUMN pedido_id INTEGER"))
+            # Em SQLite não dá para adicionar constraint UNIQUE facilmente após criação; criamos índice único.
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_transacao_pedido_id ON transacao(pedido_id)"))
+        # Backfill best-effort
+        pattern = re.compile(r"\(#(\d+)\)")
+        with engine.begin() as conn:
+            result = conn.execute(text("SELECT pk_transacao, descricao FROM transacao WHERE pedido_id IS NULL"))
+            for row in result.fetchall():
+                pk, desc = row
+                if not desc:
+                    continue
+                m = pattern.search(desc)
+                if not m:
+                    continue
+                pedido_id = int(m.group(1))
+                try:
+                    conn.execute(text("UPDATE transacao SET pedido_id = :pid WHERE pk_transacao = :pk"), {"pid": pedido_id, "pk": pk})
+                except Exception:
+                    # Ignora conflitos (duplicados) para manter operação resiliente
+                    pass
+
+# Aplica migrações simples antes de criar novas tabelas/colunas padrão
+aplicar_migracoes_simples()
 Base.metadata.create_all(engine)

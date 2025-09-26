@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  api:
+  app-econome-transacoes:
     build: .
     ports:
       - "5001:5001"
