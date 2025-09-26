@@ -35,10 +35,17 @@ git clone https://github.com/usuario/app-econome-transacoes.git
 cd app-econome-transacoes
 ```
 
-1. Suba o container:
+1. (Opcional – integração entre microserviços) Crie a rede Docker externa compartilhada uma única vez (para permitir DNS entre serviços):
+
+```bash
+docker network create econome-net
+```
+
+2. Suba o container (anexe à rede se for integrar com Pedidos):
 
 ```bash
 docker compose up -d --build
+docker network connect econome-net app-econome-transacoes || true
 ```
 
 1. Acesse no navegador:
@@ -55,6 +62,22 @@ docker compose up -d --build
 | OpenAPI JSON | <http://localhost:5001/openapi> |
 
 > O serviço utiliza SQLite local (arquivo `database/econome_db_transacoes.sqlite3`). Não há necessidade de provisionar banco externo.
+
+Se quiser usar diretamente no compose já conectado à rede externa, adicione no `docker-compose.yml` deste serviço:
+
+```yaml
+services:
+  app-econome-transacoes:
+    # ...
+    networks:
+      - econome-net
+
+networks:
+  econome-net:
+    external: true
+```
+
+Assim o serviço poderá ser acessado pelos outros containers via hostname `app-econome-transacoes`.
 
 Para parar:
 
@@ -259,6 +282,17 @@ O schema de erros centraliza mensagens padronizadas (veja `schemas/error/error_s
 - Logging centralizado (`utils/logger.py`)
 - Enum de domínio para tipo de transação garante consistência
 - Migração leve automática em `database/connection.py` adiciona `pedido_id` se o banco foi criado antes da feature (backfill tenta extrair ID da descrição). Para ambientes produtivos recomenda-se adotar Alembic.
+
+### Integração com o microserviço de Pedidos
+
+O serviço de Pedidos (Java) envia POST `http://app-econome-transacoes:5001/transacao` após confirmação de um Pedido FATURADO. Para funcionar em ambientes Docker separados:
+
+1. Crie a rede externa: `docker network create econome-net`
+2. Conecte este container: `docker network connect econome-net app-econome-transacoes`
+3. Configure o serviço de Pedidos com `TRANSACOES_API_BASE_URL=http://app-econome-transacoes:5001`
+4. Verifique log no Pedidos: deve aparecer envio bem-sucedido.
+
+Recomendação futura: implementar idempotência (checar por `pedido_id`) e padrão Outbox para confiabilidade.
 
 ---
 
