@@ -9,6 +9,8 @@ from schemas.transacao.observacao_schema import ObservacaoSchema
 
 
 class TransacaoSchema(BaseModel):
+    # Campo id opcional: utilizado em operações de listagem/visualização; ignorado no POST
+    id: Optional[int] = None
     data_vencimento: Optional[date] = None
     descricao: str = "Salario"
     tipo_transacao: TipoTransacao = TipoTransacao.RECEITA
@@ -39,6 +41,7 @@ def apresenta_transacoes(transacoes: List[TransacaoModel]):
     result = []
     for transacao in transacoes:
         result.append({
+            "id": transacao.id,
             "data_vencimento": transacao.data_vencimento,
             "descricao": transacao.descricao,
             "tipo_transacao": transacao.tipo_transacao.value,
