@@ -18,6 +18,8 @@ transacao_tag = Tag(name="Transações", description="Operações relacionadas a
 def config_transacao_routes(app):
     class PedidoIdPathSchema(BaseModel):
         pedido_id: int
+    class TransacaoIdPathSchema(BaseModel):
+        transacao_id: int
 
     @app.post('/transacao', tags=[transacao_tag], responses={"200": TransacaoViewSchema,
                                                              "409": ErrorSchema.Config.json_schema_extra["examples"][
@@ -134,3 +136,44 @@ def config_transacao_routes(app):
         except Exception as e:
             logger.error(f"Erro ao deletar transação '{transacao_descricao}': {str(e)}")
             return {"message": "Erro inesperado ao deletar transação"}, 400
+
+    @app.put('/transacao/<int:transacao_id>', tags=[transacao_tag], responses={"200": TransacaoViewSchema,
+                                                                              "404": ErrorSchema.Config.json_schema_extra["examples"]["404"]["value"],
+                                                                              "400": ErrorSchema.Config.json_schema_extra["examples"]["400"]["value"]})
+    def update_transacao(path: TransacaoIdPathSchema, body: TransacaoSchema):
+        """Atualiza uma transação existente pelo ID.
+
+        Campos não enviados serão ignorados (atualização parcial simples).
+        """
+        transacao_id = path.transacao_id
+        logger.debug(f"Atualizando transação id={transacao_id}")
+        session = Session()
+        try:
+            transacao = session.query(TransacaoModel).filter(TransacaoModel.id == transacao_id).first()
+            if not transacao:
+                return {"message": "Transação não encontrada"}, 404
+
+            if body.descricao is not None:
+                transacao.descricao = body.descricao
+            if body.tipo_transacao is not None:
+                transacao.tipo_transacao = TipoTransacao(body.tipo_transacao)
+            if body.valor is not None:
+                transacao.valor = body.valor
+            if body.pago is not None:
+                transacao.pago = body.pago
+            if body.data_pagamento is not None or (body.pago is False):
+                transacao.data_pagamento = body.data_pagamento
+            if body.data_vencimento is not None:
+                transacao.data_vencimento = body.data_vencimento
+            if body.pedido_id is not None:
+                transacao.pedido_id = body.pedido_id
+
+            session.commit()
+            session.refresh(transacao)
+            return apresenta_transacao(transacao), 200
+        except Exception as e:
+            logger.error(f"Erro ao atualizar transação id={transacao_id}: {str(e)}")
+            session.rollback()
+            return {"message": "Erro inesperado ao atualizar transação"}, 400
+        finally:
+            session.close()
