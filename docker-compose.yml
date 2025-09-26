@@ -5,3 +5,11 @@ services:
       - "5001:5001"
     volumes:
       - .:/app
+    # Conecta na rede externa compartilhada com o serviço de pedidos
+    networks:
+      - econome-net
+
+# Define rede externa (criar previamente com: docker network create econome-net)
+networks:
+  econome-net:
+    external: true
