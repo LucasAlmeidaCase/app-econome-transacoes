@@ -8,7 +8,7 @@ from model.transacao.enums.tipo_transacao_model import TipoTransacao
 from model.transacao.transacao_model import TransacaoModel
 from schemas.error.error_schema import ErrorSchema
 from schemas.transacao.transacao_schema import TransacaoSchema, apresenta_transacao, apresenta_transacoes, \
-    TransacaoViewSchema, ListagemTransacoesSchema, TransacaoBuscaSchema, TransacaoDelSchema
+    TransacaoViewSchema, ListagemTransacoesSchema, TransacaoBuscaSchema, TransacaoDelSchema, TransacaoAtualizacaoSchema
 from pydantic import BaseModel
 from utils.logger import logger
 
@@ -105,6 +105,46 @@ def config_transacao_routes(app):
             return apresenta_transacao(transacao), 200
         except Exception as e:
             logger.error(f"Erro ao buscar transação por pedido_id={path.pedido_id}: {str(e)}")
+            return {"message": "Erro inesperado"}, 400
+        finally:
+            session.close()
+
+    @app.put('/transacoes/pedido/<int:pedido_id>', tags=[transacao_tag], responses={"200": TransacaoViewSchema,
+                                                                                    "404": ErrorSchema.Config.json_schema_extra[
+                                                                                        "examples"]["404"]["value"],
+                                                                                    "400": ErrorSchema.Config.json_schema_extra[
+                                                                                        "examples"]["400"]["value"]})
+    def atualizar_transacao_por_pedido(path: PedidoIdPathSchema, body: TransacaoAtualizacaoSchema):
+        """Atualiza campos da transação associada a um pedido. Apenas campos enviados serão alterados."""
+        session = Session()
+        try:
+            transacao = session.query(TransacaoModel).filter(TransacaoModel.pedido_id == path.pedido_id).first()
+            if not transacao:
+                return {"message": "Transação não encontrada"}, 404
+
+            # Atualiza apenas campos presentes (não None)
+            if body.descricao is not None:
+                transacao.descricao = body.descricao
+            if body.tipo_transacao is not None:
+                transacao.tipo_transacao = TipoTransacao(body.tipo_transacao)
+            if body.valor is not None:
+                transacao.valor = body.valor
+            if body.data_vencimento is not None:
+                transacao.data_vencimento = body.data_vencimento
+            if body.pago is not None:
+                transacao.pago = body.pago
+                # Se marcar como não pago, limpa data_pagamento
+                if body.pago is False:
+                    transacao.data_pagamento = None
+            if body.data_pagamento is not None:
+                transacao.data_pagamento = body.data_pagamento
+
+            session.add(transacao)
+            session.commit()
+            return apresenta_transacao(transacao), 200
+        except Exception as e:
+            logger.error(f"Erro ao atualizar transação de pedido_id={path.pedido_id}: {str(e)}")
+            session.rollback()
             return {"message": "Erro inesperado"}, 400
         finally:
             session.close()
