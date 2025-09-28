@@ -18,12 +18,16 @@ class TransacaoSchema(BaseModel):
     pago: bool = False
     data_pagamento: Optional[date] = None
     pedido_id: Optional[int] = None
+    participant_id: Optional[int] = None
+
 
 class TransacaoBuscaSchema(BaseModel):
     descricao: str = "Salario"
 
+
 class ListagemTransacoesSchema(BaseModel):
     transacoes: List[TransacaoSchema]
+
 
 def apresenta_transacoes(transacoes: List[TransacaoModel]):
     result = []
@@ -37,9 +41,11 @@ def apresenta_transacoes(transacoes: List[TransacaoModel]):
             "pago": transacao.pago,
             "data_pagamento": transacao.data_pagamento,
             "observacoes": [{"texto": o.texto, "data_inclusao": o.data_inclusao} for o in transacao.observacoes],
-            "pedido_id": transacao.pedido_id
+            "pedido_id": transacao.pedido_id,
+            "participant_id": getattr(transacao, 'participant_id', None)
         })
     return {"transacoes": result}
+
 
 class TransacaoViewSchema(BaseModel):
     """ Define como a transação será retornada na API
@@ -53,10 +59,13 @@ class TransacaoViewSchema(BaseModel):
     data_pagamento: Optional[date] = None
     observacoes: List[ObservacaoSchema]
     pedido_id: Optional[int] = None
+    participant_id: Optional[int] = None
+
 
 class TransacaoDelSchema(BaseModel):
     message: str
     descricao: str
+
 
 def apresenta_transacao(transacao: TransacaoModel):
     return {
@@ -68,5 +77,6 @@ def apresenta_transacao(transacao: TransacaoModel):
         "pago": transacao.pago,
         "data_pagamento": transacao.data_pagamento,
         "observacoes": [{"texto": o.texto, "data_inclusao": o.data_inclusao} for o in transacao.observacoes],
-        "pedido_id": transacao.pedido_id
+        "pedido_id": transacao.pedido_id,
+        "participant_id": getattr(transacao, 'participant_id', None)
     }
