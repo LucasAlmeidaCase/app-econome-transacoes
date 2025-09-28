@@ -6,6 +6,7 @@ API REST em Python (Flask 3 + flask-openapi3) para gerenciamento de transações
 >
 > - Vínculo com Pedidos (`pedido_id`) – endpoint `GET /transacoes/pedido/{pedido_id}`
 > - Atualização de transação via `PUT /transacao/{id}` (atualização parcial simples)
+> - Recebe `pedido_id` e valor atualizado via eventos do serviço de Pedidos (que resolve participante de forma independente)
 
 ---
 
@@ -167,6 +168,7 @@ app-econome-transacoes/
 - Remover transação por descrição (DELETE /transacao?descricao=...)
 - Adicionar observação a uma transação (POST /transacao/observacao)
 - Consultar transação vinculada a um Pedido (GET /transacoes/pedido/{pedido_id})
+- Suporte a upsert indireto disparado pelo serviço de Pedidos quando FATURADO
 - Documentação multi-formato OpenAPI
 
 ---
@@ -310,6 +312,11 @@ O schema de erros centraliza mensagens padronizadas (veja `schemas/error/error_s
 ### Integração com o microserviço de Pedidos
 
 O serviço de Pedidos (Java) envia POST `http://app-econome-transacoes:5001/transacao` após confirmação de um Pedido FATURADO. Para funcionar em ambientes Docker separados:
+
+Notas adicionais:
+- Serviço de Transações não enriquece participante; somente persiste relação lógica via `pedido_id`.
+- O front recupera participante através da resposta enriquecida de Pedidos, não pela Transação.
+ 
 
 1. Crie a rede externa: `docker network create econome-net`
 2. Conecte este container: `docker network connect econome-net app-econome-transacoes`
