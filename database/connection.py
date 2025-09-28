@@ -31,12 +31,17 @@ if not database_exists(engine.url):
 
 """
 Rotina simples de "migração" incremental:
-Se a coluna pedido_id ainda não existir na tabela transacao (bancos criados antes da funcionalidade
-de vínculo Pedido-Transação), ela é adicionada via ALTER TABLE e um índice único é criado.
-Em seguida, tentamos fazer backfill a partir do padrão de descrição: "Pedido <numero> (#<id>)".
+
+1) Se a coluna pedido_id ainda não existir na tabela transacao (bancos criados antes da funcionalidade
+    de vínculo Pedido-Transação), ela é adicionada via ALTER TABLE e um índice único é criado. Em seguida,
+    tentamos fazer backfill a partir do padrão de descrição: "Pedido <numero> (#<id>)".
+
+2) Se a coluna participant_id não existir (feature de associação opcional de Participante à transação),
+    ela é adicionada e criado um índice simples (não unique). Não há backfill possível.
 
 Obs.: Para algo mais robusto, considerar Alembic no futuro.
 """
+
 
 def aplicar_migracoes_simples():
     inspector = inspect(engine)
@@ -48,11 +53,13 @@ def aplicar_migracoes_simples():
         # Tabela ainda não existe; será criada normalmente abaixo
         return
     col_names = [c['name'] for c in inspector.get_columns('transacao')]
+    changed = False
     if 'pedido_id' not in col_names:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE transacao ADD COLUMN pedido_id INTEGER"))
             # Em SQLite não dá para adicionar constraint UNIQUE facilmente após criação; criamos índice único.
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_transacao_pedido_id ON transacao(pedido_id)"))
+        changed = True
         # Backfill best-effort
         pattern = re.compile(r"\(#(\d+)\)")
         with engine.begin() as conn:
@@ -70,6 +77,14 @@ def aplicar_migracoes_simples():
                 except Exception:
                     # Ignora conflitos (duplicados) para manter operação resiliente
                     pass
+    if 'participant_id' not in col_names:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE transacao ADD COLUMN participant_id INTEGER"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transacao_participant_id ON transacao(participant_id)"))
+        changed = True
+    if not changed:
+        return
+
 
 # Aplica migrações simples antes de criar novas tabelas/colunas padrão
 aplicar_migracoes_simples()

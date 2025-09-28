@@ -26,12 +26,15 @@ class TransacaoModel(Base):
     data_vencimento = Column(Date, nullable=True)
     # Relacionamento lógico com Pedido em outro microserviço (não enforced por FK aqui)
     pedido_id = Column(Integer, unique=True, index=True, nullable=True)
+    # Relacionamento lógico com Participante (opcional) - não enforced (microserviço separado)
+    participant_id = Column(Integer, index=True, nullable=True)
 
     observacoes = relationship("ObservacaoModel")
 
     def __init__(self, descricao: str, tipo_transacao: TipoTransacao, valor: float,
                  data_inclusao: Union[DateTime, None] = None, pago: bool = False, data_pagamento: Optional[date] = None,
-                 data_vencimento: Optional[date] = None, pedido_id: Optional[int] = None):
+                 data_vencimento: Optional[date] = None, pedido_id: Optional[int] = None,
+                 participant_id: Optional[int] = None):
         self.descricao = descricao
         self.tipo_transacao = tipo_transacao
         self.valor = valor
@@ -40,6 +43,7 @@ class TransacaoModel(Base):
         self.data_pagamento = data_pagamento
         self.data_vencimento = data_vencimento
         self.pedido_id = pedido_id
+        self.participant_id = participant_id
 
     def adiciona_observacao(self, observacao: ObservacaoModel):
         self.observacoes.append(observacao)

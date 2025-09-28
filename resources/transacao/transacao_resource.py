@@ -38,7 +38,8 @@ def config_transacao_routes(app):
             valor=body.valor,
             pago=body.pago,
             data_pagamento=body.data_pagamento,
-            pedido_id=body.pedido_id
+            pedido_id=body.pedido_id,
+            participant_id=body.participant_id
         )
         logger.debug(f"Adicionando transação: '{transacao.descricao}'")
 
@@ -207,6 +208,8 @@ def config_transacao_routes(app):
                 transacao.data_vencimento = body.data_vencimento
             if body.pedido_id is not None:
                 transacao.pedido_id = body.pedido_id
+            if body.participant_id is not None:
+                transacao.participant_id = body.participant_id
 
             session.commit()
             session.refresh(transacao)
