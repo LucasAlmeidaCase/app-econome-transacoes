@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, Field
 from typing import List, Optional
 
 from model.transacao.transacao_model import TransacaoModel
@@ -18,7 +18,18 @@ class TransacaoSchema(BaseModel):
     pago: bool = False
     data_pagamento: Optional[date] = None
     pedido_id: Optional[int] = None
-    participant_id: Optional[int] = None
+    # Mantém o nome original participant_id, mas aceita alias "participante_id" caso venha do serviço Java
+    participant_id: Optional[int] = Field(default=None, alias="participante_id")
+
+    # Aceita datas enviadas como array [yyyy, m, d] (ex: [2025, 9, 29]) além de string ISO
+    @field_validator('data_vencimento', 'data_pagamento', mode='before')
+    def parse_date_array(cls, v):
+        if isinstance(v, list) and len(v) == 3:
+            try:
+                return date(v[0], v[1], v[2])
+            except Exception:
+                return v
+        return v
 
 
 class TransacaoAtualizacaoSchema(BaseModel):
@@ -32,6 +43,15 @@ class TransacaoAtualizacaoSchema(BaseModel):
     valor: Optional[float] = None
     pago: Optional[bool] = None
     data_pagamento: Optional[date] = None
+
+    @field_validator('data_vencimento', 'data_pagamento', mode='before')
+    def parse_date_array(cls, v):
+        if isinstance(v, list) and len(v) == 3:
+            try:
+                return date(v[0], v[1], v[2])
+            except Exception:
+                return v
+        return v
 
 class TransacaoBuscaSchema(BaseModel):
     descricao: str = "Salario"
